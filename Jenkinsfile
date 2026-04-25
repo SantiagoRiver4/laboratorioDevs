@@ -11,31 +11,45 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                bat 'py -m pip install -r requirements.txt'
+                sh '''
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                bat 'py -m pytest'
+                sh '''
+                . venv/bin/activate
+                pytest
+                '''
             }
         }
 
         stage('Security Scan') {
             steps {
-                bat 'py -m bandit -r . || exit 0'
+                sh '''
+                . venv/bin/activate
+                bandit -r . || true
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t devsecops-app .'
+                sh 'docker build -t devsecops-app .'
             }
         }
 
         stage('Deploy Container') {
             steps {
-                bat 'docker run -d -p 5000:5000 devsecops-app'
+                sh '''
+                docker rm -f devsecops-app || true
+                docker run -d -p 5000:5000 --name devsecops-app devsecops-app
+                '''
             }
         }
     }
